@@ -60,7 +60,7 @@ config :waffle,
   storage_dir: "uploads/waffle"
 ```
 
-Finally, in order to be compatible with newer Goth versions, you will need to
+Finally, in order to be compatible with Goth 1.2 and above, you will need to
 specify the adapter and the service account path in the definition module:
 
 ```elixir
