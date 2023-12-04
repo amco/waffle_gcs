@@ -61,7 +61,7 @@ defmodule Waffle.Storage.Google.CloudStorage do
   """
   @spec url(Types.definition, Types.version, Types.meta, Keyword.t) :: String.t
   def url(definition, version, meta, opts \\ []) do
-    signer = Util.option(opts, :url_builder, Waffle.Storage.Google.UrlV2)
+    signer = Util.option(opts, :url_builder, Waffle.Storage.Google.UrlV4)
     signer.build(definition, version, meta, opts)
   end
 
