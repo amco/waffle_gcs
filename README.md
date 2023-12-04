@@ -61,7 +61,7 @@ config :waffle,
 ```
 
 In order to be compatible with newer Goth versions, add the following functions
-to your definition module:
+to the definition modules:
 
 ```elixir
 # Specify the Goth module to authenticate in GCP.
