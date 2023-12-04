@@ -60,12 +60,25 @@ config :waffle,
   storage_dir: "uploads/waffle"
 ```
 
+Also, add the following functions to your definition module:
+
+```elixir
+# Specify the Goth module to authenticate in GCP.
+def goth_module do
+  MyApp.Goth.Storage
+end
+
+# Defines the service account file to be used to sign the urls.
+def service_account_path do
+  Application.fetch_env!(:my_app, :gcp_storage)
+  |> Keyword.get(:service_account_path)
+end
+```
+
 **Note**: a valid bucket name is a required config. This can either be a
 hard-coded string (e.g. `"gcs-bucket"`) or a system env tuple (e.g.
 `{:system, "WAFFLE_BUCKET"}`). You can also override this in your definition
 module (e.g. `def bucket(), do: "my-bucket"`).
-
-Authentication is done through Goth which requires credentials (https://github.com/peburrows/goth#installation).
 
 ## URL Signing
 
