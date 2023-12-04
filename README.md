@@ -60,8 +60,8 @@ config :waffle,
   storage_dir: "uploads/waffle"
 ```
 
-In order to be compatible with newer Goth versions, add the following functions
-to the definition modules:
+Finally, in order to be compatible with newer Goth versions, you will need to
+specify the adapter and the service account path in the definition module:
 
 ```elixir
 # Specify the Goth module to authenticate in GCP.
