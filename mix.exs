@@ -38,9 +38,9 @@ defmodule Waffle.Storage.Google.CloudStorage.MixProject do
   defp deps do
     [
       {:waffle, github: "amco/waffle", branch: "master"},
-      {:goth, "~> 1.1"},
-      {:gcs_signed_url, "~> 0.4"},
-      {:google_api_storage, "~> 0.14"},
+      {:goth, "~> 1.4"},
+      {:req, "~> 0.6"},
+      {:gcs_signed_url, github: "alexandrubagu/gcs_signed_url", ref: "1bb2b0ac08699d8743d7db852d42239b77cbd7b9"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
     ]
   end

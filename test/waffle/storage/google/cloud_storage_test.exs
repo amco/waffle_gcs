@@ -24,29 +24,6 @@ defmodule Waffle.Storage.Google.CloudStorageTest do
     }
   end
 
-  def cleanup(_) do
-    # We should prefer, for performance reasons, to cleanup the bucket once
-    # after all tests have run, but `after_suite/1` is only available starting
-    # with Elixir version 1.8.0. Therefore, previous versions need to use the
-    # `on_exit/1` function to register a callback that executes after each
-    # individual test runs.
-    if Version.compare(System.version(), "1.8.0") == :lt do
-      on_exit(fn -> IO.puts("Cleanup invokved (#{inspect self()})") end)
-    else
-      :ok
-    end
-  end
-
-  describe "conn/1" do
-    test "constructs a Tesla client" do
-      assert %Tesla.Client{} = CloudStorage.conn()
-    end
-
-    test "constructs a Tesla client with a custom scope" do
-      assert %Tesla.Client{} = CloudStorage.conn("https://www.googleapis.com/auth/devstorage.read_only")
-    end
-  end
-
   describe "utility functions" do
     setup [:random_name, :create_wafile, :setup_waffle]
 
