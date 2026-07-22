@@ -100,5 +100,3 @@ def gcs_object_headers(_version, {_file, _scope}) do
   [contentType: "image/jpeg"]
 end
 ```
-
-The list of all the supported attributes can be found here: https://hexdocs.pm/google_api_storage/GoogleApi.Storage.V1.Model.Object.html.

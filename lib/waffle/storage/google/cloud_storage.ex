@@ -1,8 +1,7 @@
 defmodule Waffle.Storage.Google.CloudStorage do
   @moduledoc """
-  The main storage integration for Waffle, this acts primarily as a wrapper
-  around `Google.Api.Storage.V1`. To use this module with Waffle, simply set
-  your `:storage` config appropriately:
+  The main storage integration for Waffle. To use this module with Waffle,
+  simply set your `:storage` config appropriately:
 
   ```elixir
   config :waffle, storage: Waffle.Storage.Google.CloudStorage
@@ -14,47 +13,41 @@ defmodule Waffle.Storage.Google.CloudStorage do
   otherwise some (or all) calls may fail.
   """
 
-  alias GoogleApi.Storage.V1.Connection
-  alias GoogleApi.Storage.V1.Api.Objects
-  alias GoogleApi.Storage.V1.Model.Object
-  alias Waffle.Storage.Google.Util
+  alias Req.Response
   alias Waffle.Types
-
-  @type object_or_error :: {:ok, GoogleApi.Storage.V1.Model.Object.t} | {:error, Tesla.Env.t}
+  alias Waffle.Storage.Google.Util
 
   @doc """
   Put a Waffle file in a Google Cloud Storage bucket.
   """
-  @spec put(Types.definition, Types.version, Types.meta) :: object_or_error
+  @spec put(Types.definition, Types.version, Types.meta) :: {:ok, Response.t() | {:error, term()}}
   def put(definition, version, meta) do
+    bucket = bucket(definition)
     path = path_for(definition, version, meta)
-    acl = definition.acl(version, meta)
-
-    gcs_options =
-      definition
-      |> get_gcs_options(version, meta)
-      |> ensure_keyword_list()
-      |> Keyword.put(:acl, acl)
-      |> Enum.into(%{})
-
-    insert(conn(definition), bucket(definition), path, data(meta), gcs_options)
+    {:ok, %{token: token}} = Goth.fetch(definition.goth_module())
+    url = "https://storage.googleapis.com/upload/storage/v1/b/#{bucket}/o"
+    params = [uploadType: "multipart", name: path]
+    headers = [{"Authorization", "Bearer #{token}"}]
+    Req.post(url, params: params, headers: headers, body: data(meta))
   end
 
   @doc """
   Delete a file from a Google Cloud Storage bucket.
   """
-  @spec put(Types.definition, Types.version, Types.meta) :: object_or_error
+  @spec put(Types.definition, Types.version, Types.meta) :: {:ok, Response.t() | {:error, term()}}
   def delete(definition, version, meta) do
-    Objects.storage_objects_delete(
-      conn(definition),
-      bucket(definition),
-      path_for(definition, version, meta) |> URI.encode_www_form()
-    )
+    bucket = bucket(definition)
+    path = path_for(definition, version, meta)
+    object = URI.encode_www_form(path)
+    {:ok, %{token: token}} = Goth.fetch(definition.goth_module())
+    url = "https://storage.googleapis.com/storage/v1/b/#{bucket}/o/#{object}"
+    headers = [{"Authorization", "Bearer #{token}"}]
+    Req.delete(url, headers: headers)
   end
 
   @doc """
   Retrieve the public URL for a file in a Google Cloud Storage bucket. Uses
-  `Waffle.Storage.Google.UrlV2` by default, which uses v2 signing if a signed
+  `Waffle.Storage.Google.UrlV4` by default, which uses v2 signing if a signed
   URL is requested, but this can be overriden in the options list or in the
   application configs by setting `:url_builder` to any module that imlements the
   behavior of `Waffle.Storage.Google.Url`.
@@ -63,16 +56,6 @@ defmodule Waffle.Storage.Google.CloudStorage do
   def url(definition, version, meta, opts \\ []) do
     signer = Util.option(opts, :url_builder, Waffle.Storage.Google.UrlV4)
     signer.build(definition, version, meta, opts)
-  end
-
-  @doc """
-  Constructs a new connection object with scoped authentication. If no scope is
-  provided, the `devstorage.full_control` scope is used as a default.
-  """
-  @spec conn(Types.definition) :: Tesla.Env.client
-  def conn(definition) do
-    {:ok, token} = Goth.fetch(definition.goth_module())
-    Connection.new(token.token)
   end
 
   @doc """
@@ -110,41 +93,6 @@ defmodule Waffle.Storage.Google.CloudStorage do
   end
 
   @spec data(Types.file) :: {:file | :binary, String.t}
-  defp data({%{binary: nil, path: path}, _}), do: {:file, path}
-  defp data({%{binary: data}, _}), do: {:binary, data}
-
-  @spec insert(Tesla.Env.client, String.t, String.t, {:file | :binary, String.t}, String.t) :: object_or_error
-  defp insert(conn, bucket, name, {:file, path}, gcs_options) do
-    object = %Object{name: name}
-      |> Map.merge(gcs_options)
-
-    Objects.storage_objects_insert_simple(
-      conn,
-      bucket,
-      "multipart",
-      object,
-      path
-    )
-  end
-  defp insert(conn, bucket, name, {:binary, data}, acl) do
-    Objects.storage_objects_insert_iodata(
-      conn,
-      bucket,
-      "multipart",
-      %Object{name: name, acl: acl},
-      data
-    )
-  end
-
-  defp get_gcs_options(definition, version, {file, scope}) do
-    try do
-      apply(definition, :gcs_object_headers, [version, {file, scope}])
-    rescue
-      UndefinedFunctionError ->
-        []
-    end
-  end
-
-  defp ensure_keyword_list(list) when is_list(list), do: list
-  defp ensure_keyword_list(map) when is_map(map), do: Map.to_list(map)
+  defp data({%{binary: nil, path: path}, _}), do: File.read!(path)
+  defp data({%{binary: data}, _}), do: data
 end
